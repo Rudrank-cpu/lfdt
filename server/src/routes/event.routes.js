@@ -7,6 +7,7 @@ const { validateBody } = require('../middlewares/validate');
 // Public catalog routes
 router.get('/', eventController.listEvents);
 router.get('/:id', eventController.getEventById);
+router.get('/:id/ics', eventController.downloadIcs);
 
 // Head user protected routes
 router.post(

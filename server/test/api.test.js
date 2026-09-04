@@ -467,8 +467,53 @@ async function runTests() {
     assert.strictEqual(getDeleted.status, 404);
     console.log('✔ [PASS] Event deletion and 404 cascade verified.\n');
 
+    // ----------------------------------------------------------------
+    // SECTION 11: Notification ICS Export & Phase 3 Ticket Check-in
+    // ----------------------------------------------------------------
+    console.log('--- SECTION 11: Notification ICS Export & Check-in ---');
+
+    // 1. Download ICS file
+    const icsRes = await request(`/api/v1/events/${eventId}/ics`);
+    assert.strictEqual(icsRes.status, 200);
+    assert.ok(icsRes.headers.get('content-type').includes('text/calendar'));
+    assert.ok(icsRes.data.includes('BEGIN:VCALENDAR'));
+    assert.ok(icsRes.data.includes('BEGIN:VEVENT'));
+    assert.ok(icsRes.data.includes('END:VCALENDAR'));
+    console.log('✔ [PASS] GET /events/:id/ics streams valid RFC 5545 iCalendar data.');
+
+    // 2. Head User checks in confirmed attendee (Charlie)
+    const checkinRes = await request(`/api/v1/events/${eventId}/checkin`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${head1Token}` },
+      body: { ticketCode: charlie.ticket_code }
+    });
+    assert.strictEqual(checkinRes.status, 200);
+    assert.strictEqual(checkinRes.data.success, true);
+    assert.strictEqual(checkinRes.data.data.checkedIn, true);
+    assert.ok(checkinRes.data.data.attendee.checkedInAt);
+    console.log('✔ [PASS] Head User checked in Charlie with valid ticket code.');
+
+    // 3. Repeated check-in should indicate already checked in
+    const repeatCheckin = await request(`/api/v1/events/${eventId}/checkin`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${head1Token}` },
+      body: { ticketCode: charlie.ticket_code }
+    });
+    assert.strictEqual(repeatCheckin.status, 200);
+    assert.strictEqual(repeatCheckin.data.data.alreadyCheckedIn, true);
+    console.log('✔ [PASS] Repeated check-in correctly detected without error.');
+
+    // 4. Invalid ticket code rejection
+    const invalidCheckin = await request(`/api/v1/events/${eventId}/checkin`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${head1Token}` },
+      body: { ticketCode: 'EF-INVALID' }
+    });
+    assert.strictEqual(invalidCheckin.status, 404);
+    console.log('✔ [PASS] Invalid ticket code correctly rejected with 404.\n');
+
     console.log('================================================================');
-    console.log('🎉 ALL 10 COMPREHENSIVE BACKEND VERIFICATION SECTIONS PASSED! 🎉');
+    console.log('🎉 ALL 11 COMPREHENSIVE BACKEND VERIFICATION SECTIONS PASSED! 🎉');
     console.log('================================================================\n');
   } finally {
     if (server) {

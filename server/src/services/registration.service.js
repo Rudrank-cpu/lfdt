@@ -173,6 +173,7 @@ function getEventAttendees(eventId, headUserId) {
       r.ticket_code,
       r.registered_at,
       r.cancelled_at,
+      r.checked_in_at,
       u.id as user_id,
       u.full_name,
       u.email
@@ -203,14 +204,15 @@ function getEventAttendees(eventId, headUserId) {
 function exportAttendeesCsv(eventId, headUserId) {
   const { event, attendees } = getEventAttendees(eventId, headUserId);
 
-  const headers = ['Registration ID', 'Ticket Code', 'Full Name', 'Email', 'Status', 'Registered At'];
+  const headers = ['Registration ID', 'Ticket Code', 'Full Name', 'Email', 'Status', 'Registered At', 'Checked In At'];
   const rows = attendees.map(a => [
     `"${a.registration_id}"`,
     `"${a.ticket_code}"`,
     `"${a.full_name.replace(/"/g, '""')}"`,
     `"${a.email}"`,
     `"${a.status}"`,
-    `"${a.registered_at}"`
+    `"${a.registered_at}"`,
+    `"${a.checked_in_at || 'Not Checked In'}"`
   ]);
 
   const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
@@ -220,10 +222,93 @@ function exportAttendeesCsv(eventId, headUserId) {
   };
 }
 
+/**
+ * QR Code Check-in / Entrance Verification
+ * Aligned with idea.md Section 8 Phase 3
+ */
+function checkinAttendee(eventId, headUserId, ticketCode) {
+  const event = get('SELECT id, head_user_id, title FROM events WHERE id = ?', [eventId]);
+  if (!event) {
+    const err = new Error('Event not found.');
+    err.status = 404;
+    throw err;
+  }
+
+  if (event.head_user_id !== headUserId) {
+    const err = new Error('Forbidden: You can only check in attendees for your own events.');
+    err.status = 403;
+    throw err;
+  }
+
+  const cleanCode = (ticketCode || '').trim().toUpperCase();
+  if (!cleanCode) {
+    const err = new Error('Ticket code is required.');
+    err.status = 400;
+    throw err;
+  }
+
+  const sql = `
+    SELECT 
+      r.id as registration_id,
+      r.status,
+      r.ticket_code,
+      r.checked_in_at,
+      u.full_name,
+      u.email
+    FROM registrations r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.event_id = ? AND UPPER(r.ticket_code) = ?
+  `;
+
+  const reg = get(sql, [eventId, cleanCode]);
+  if (!reg) {
+    const err = new Error(`Ticket code "${cleanCode}" was not found for this event.`);
+    err.status = 404;
+    throw err;
+  }
+
+  if (reg.status !== 'CONFIRMED') {
+    const err = new Error(`Cannot check in ticket: registration status is ${reg.status}.`);
+    err.status = 400;
+    throw err;
+  }
+
+  if (reg.checked_in_at) {
+    return {
+      alreadyCheckedIn: true,
+      message: `Attendee already checked in at ${new Date(reg.checked_in_at).toLocaleTimeString()}`,
+      attendee: {
+        registrationId: reg.registration_id,
+        ticketCode: reg.ticket_code,
+        fullName: reg.full_name,
+        email: reg.email,
+        checkedInAt: reg.checked_in_at
+      }
+    };
+  }
+
+  const checkinTime = new Date().toISOString();
+  run('UPDATE registrations SET checked_in_at = ? WHERE id = ?', [checkinTime, reg.registration_id]);
+
+  return {
+    alreadyCheckedIn: false,
+    checkedIn: true,
+    message: `Attendee "${reg.full_name}" successfully checked in!`,
+    attendee: {
+      registrationId: reg.registration_id,
+      ticketCode: reg.ticket_code,
+      fullName: reg.full_name,
+      email: reg.email,
+      checkedInAt: checkinTime
+    }
+  };
+}
+
 module.exports = {
   registerForEvent,
   cancelRegistration,
   getMyRegistrations,
   getEventAttendees,
-  exportAttendeesCsv
+  exportAttendeesCsv,
+  checkinAttendee
 };

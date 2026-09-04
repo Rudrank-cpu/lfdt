@@ -138,7 +138,7 @@ export const OrganizerDashboardPage = ({ onCreateEventRef }) => {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => navigate('/admin/events/new')}
             style={{ gap: '8px', whiteSpace: 'nowrap' }}
           >
             <Plus size={18} /> Create Event
@@ -341,7 +341,7 @@ export const OrganizerDashboardPage = ({ onCreateEventRef }) => {
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setRosterEvent(event)}
+                    onClick={() => navigate(`/admin/events/${event.id}/attendees`)}
                     title="View Attendees Roster"
                     style={{ gap: '6px' }}
                   >
@@ -360,7 +360,7 @@ export const OrganizerDashboardPage = ({ onCreateEventRef }) => {
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setEditingEvent(event)}
+                    onClick={() => navigate(`/admin/events/${event.id}/edit`)}
                     title="Edit Event"
                   >
                     <Edit2 size={15} />

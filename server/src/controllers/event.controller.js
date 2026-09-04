@@ -1,4 +1,5 @@
 const eventService = require('../services/event.service');
+const notificationService = require('../services/notification.service');
 
 async function listEvents(req, res, next) {
   try {
@@ -86,11 +87,26 @@ async function deleteEvent(req, res, next) {
   }
 }
 
+async function downloadIcs(req, res, next) {
+  try {
+    const event = eventService.getEventById(req.params.id);
+    const icsContent = notificationService.generateIcs(event);
+    const filename = `${event.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.ics`;
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(icsContent);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   listEvents,
   getEventById,
   createEvent,
   updateEvent,
   updateEventStatus,
-  deleteEvent
+  deleteEvent,
+  downloadIcs
 };

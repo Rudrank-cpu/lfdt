@@ -39,6 +39,7 @@ function initSchema() {
       ticket_code TEXT UNIQUE NOT NULL,
       registered_at TEXT NOT NULL DEFAULT (datetime('now')),
       cancelled_at TEXT,
+      checked_in_at TEXT,
       UNIQUE(event_id, user_id)
     );
 
@@ -49,6 +50,14 @@ function initSchema() {
   `;
 
   exec(ddl);
+
+  // Safe migration for existing databases without checked_in_at column
+  try {
+    exec("ALTER TABLE registrations ADD COLUMN checked_in_at TEXT;");
+  } catch (_) {
+    // Column already exists, ignore
+  }
+
   console.log('✅ Database schema initialized successfully!');
 }
 

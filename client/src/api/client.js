@@ -173,6 +173,18 @@ class ApiClient {
   getExportCsvUrl(eventId) {
     return `${API_BASE}/events/${eventId}/export`;
   }
+
+  getEventIcsUrl(eventId) {
+    return `${API_BASE}/events/${eventId}/ics`;
+  }
+
+  async checkinAttendee(eventId, ticketCode) {
+    const res = await this.request(`/events/${eventId}/checkin`, {
+      method: 'POST',
+      body: { ticketCode }
+    });
+    return res.data;
+  }
 }
 
 export const api = new ApiClient();

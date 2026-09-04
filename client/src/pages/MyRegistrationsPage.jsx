@@ -171,7 +171,7 @@ export const MyRegistrationsPage = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
             <button
               type="button"
-              onClick={() => setSelectedTicket({ reg, event: eventObj })}
+              onClick={() => navigate(`/tickets/${reg.event_id}`)}
               className="btn btn-primary btn-sm"
               style={{ gap: '6px' }}
             >

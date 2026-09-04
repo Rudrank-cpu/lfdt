@@ -65,10 +65,24 @@ async function exportCsv(req, res, next) {
   }
 }
 
+async function checkin(req, res, next) {
+  try {
+    const { ticketCode } = req.body;
+    const result = registrationService.checkinAttendee(req.params.id, req.user.id, ticketCode);
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   register,
   cancel,
   getMyRegistrations,
   getEventAttendees,
-  exportCsv
+  exportCsv,
+  checkin
 };

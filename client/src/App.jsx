@@ -10,6 +10,11 @@ import { MyRegistrationsPage } from './pages/MyRegistrationsPage';
 import { OrganizerDashboardPage } from './pages/OrganizerDashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { CreateEventPage } from './pages/CreateEventPage';
+import { EditEventPage } from './pages/EditEventPage';
+import { AttendeeRosterPage } from './pages/AttendeeRosterPage';
+import { MyTicketsPage } from './pages/MyTicketsPage';
+import { Footer } from './components/common/Footer';
 import { EventFormModal } from './components/organizer/EventFormModal';
 import { api } from './api/client';
 
@@ -37,11 +42,7 @@ const AppLayout = () => {
       {!hideNavbar && (
         <Navbar
           onOpenCreateEvent={() => {
-            if (createEventOpenerRef.current) {
-              createEventOpenerRef.current();
-            } else {
-              setShowCreateModal(true);
-            }
+            navigate('/admin/events/new');
           }}
         />
       )}
@@ -64,6 +65,14 @@ const AppLayout = () => {
               </RoleRoute>
             }
           />
+          <Route
+            path="/tickets/:id"
+            element={
+              <RoleRoute allowedRoles={['VIEWER', 'HEAD']}>
+                <MyTicketsPage />
+              </RoleRoute>
+            }
+          />
 
           {/* Head Organizer Protected Routes */}
           <Route
@@ -78,11 +87,37 @@ const AppLayout = () => {
               </RoleRoute>
             }
           />
+          <Route
+            path="/admin/events/new"
+            element={
+              <RoleRoute allowedRoles={['HEAD']}>
+                <CreateEventPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/events/:id/edit"
+            element={
+              <RoleRoute allowedRoles={['HEAD']}>
+                <EditEventPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/events/:id/attendees"
+            element={
+              <RoleRoute allowedRoles={['HEAD']}>
+                <AttendeeRosterPage />
+              </RoleRoute>
+            }
+          />
 
           {/* Catch-all fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      {!hideNavbar && <Footer />}
 
       {/* Global Event Creation Modal */}
       <EventFormModal
