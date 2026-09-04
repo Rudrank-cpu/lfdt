@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
-import { CalendarDays, MapPin, Video, Users, DollarSign, AlignLeft } from 'lucide-react';
+import {
+  CalendarDays, MapPin, Video, Users, DollarSign,
+  AlignLeft, Image as ImageIcon, Sparkles, Check
+} from 'lucide-react';
 
 const CATEGORIES = ['Technology', 'Workshops', 'Business', 'Healthcare', 'Design', 'Education', 'Networking'];
+
+const STOCK_BANNERS = [
+  { id: 'tech', label: 'AI & Tech', url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80' },
+  { id: 'workshop', label: 'Workshop', url: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80' },
+  { id: 'design', label: 'Design', url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80' },
+  { id: 'network', label: 'Networking', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80' },
+  { id: 'business', label: 'Business', url: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=1200&q=80' },
+  { id: 'cultural', label: 'Cultural', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80' }
+];
 
 const defaultForm = {
   title: '',
   description: '',
   category: 'Technology',
-  bannerUrl: '',
+  bannerUrl: STOCK_BANNERS[0].url,
   locationType: 'VIRTUAL',
   venueOrUrl: '',
   startTime: '',
   endTime: '',
   maxCapacity: 100,
-  status: 'DRAFT'
+  status: 'PUBLISHED'
 };
 
 export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null }) => {
@@ -28,22 +40,34 @@ export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null
         if (!isoString) return '';
         const d = new Date(isoString);
         const pad = n => String(n).padStart(2, '0');
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       };
+
       setForm({
         title: existingEvent.title || '',
         description: existingEvent.description || '',
         category: existingEvent.category || 'Technology',
-        bannerUrl: existingEvent.bannerUrl || '',
+        bannerUrl: existingEvent.bannerUrl || STOCK_BANNERS[0].url,
         locationType: existingEvent.locationType || 'VIRTUAL',
         venueOrUrl: existingEvent.venueOrUrl || '',
         startTime: toLocalInput(existingEvent.startTime),
         endTime: toLocalInput(existingEvent.endTime),
         maxCapacity: existingEvent.maxCapacity || 100,
-        status: existingEvent.status || 'DRAFT'
+        status: existingEvent.status || 'PUBLISHED'
       });
     } else {
-      setForm(defaultForm);
+      // Default: start tomorrow at 10 AM, end tomorrow at 5 PM
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const pad = n => String(n).padStart(2, '0');
+      const startStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T10:00`;
+      const endStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T17:00`;
+
+      setForm({
+        ...defaultForm,
+        startTime: startStr,
+        endTime: endStr
+      });
     }
     setError('');
   }, [existingEvent, isOpen]);
@@ -55,12 +79,24 @@ export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (form.title.trim().length < 5) {
+      setError('Event title must be at least 5 characters.');
+      return;
+    }
+
     if (new Date(form.endTime) <= new Date(form.startTime)) {
       setError('End time must be after start time.');
       return;
     }
+
     if (form.maxCapacity < 1) {
-      setError('Capacity must be at least 1.');
+      setError('Capacity limit must be at least 1 attendee.');
+      return;
+    }
+
+    if (!form.venueOrUrl.trim()) {
+      setError(form.locationType === 'VIRTUAL' ? 'Please provide a virtual meeting URL.' : 'Please enter the physical venue address.');
       return;
     }
 
@@ -75,7 +111,7 @@ export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null
       await onSubmit(payload);
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to save event. Please try again.');
+      setError(err.message || 'Failed to save event. Please check inputs.');
     } finally {
       setIsSubmitting(false);
     }
@@ -103,90 +139,136 @@ export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null
       title={existingEvent ? '✏️ Edit Event' : '✨ Create New Event'}
       maxWidth="680px"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {error && (
+          <div
+            style={{
+              padding: '12px 16px',
+              background: 'var(--status-danger-bg)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--status-danger)',
+              fontSize: '0.875rem'
+            }}
+          >
+            {error}
+          </div>
+        )}
+
         {/* Title */}
         <div style={fieldStyle}>
           <label style={labelStyle}>Event Title *</label>
           <input
-            className="input-field"
             type="text"
-            placeholder="e.g. Full-Stack AI Summit 2026"
+            className="input-field"
+            placeholder="e.g., Full-Stack AI Summit 2026"
             value={form.title}
             onChange={(e) => handleChange('title', e.target.value)}
             required
           />
         </div>
 
-        {/* Description */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}><AlignLeft size={14} /> Description *</label>
-          <textarea
-            className="input-field"
-            rows={4}
-            placeholder="What will attendees experience? Describe your event..."
-            value={form.description}
-            onChange={(e) => handleChange('description', e.target.value)}
-            required
-            style={{ resize: 'vertical', lineHeight: 1.6 }}
-          />
-        </div>
-
-        {/* Category + Status */}
+        {/* Category & Status */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Category *</label>
+            <label style={labelStyle}>Category</label>
             <select
               className="input-field"
               value={form.category}
               onChange={(e) => handleChange('category', e.target.value)}
             >
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+
           <div style={fieldStyle}>
-            <label style={labelStyle}>Status</label>
+            <label style={labelStyle}>Publication Status</label>
             <select
               className="input-field"
               value={form.status}
               onChange={(e) => handleChange('status', e.target.value)}
             >
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="PUBLISHED">Published (Visible to Viewers)</option>
+              <option value="DRAFT">Draft (Hidden)</option>
               <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>
 
-        {/* Banner URL */}
+        {/* Stock Banner Gallery Selection */}
         <div style={fieldStyle}>
-          <label style={labelStyle}>Banner Image URL</label>
-          <input
-            className="input-field"
-            type="url"
-            placeholder="https://images.unsplash.com/photo-..."
-            value={form.bannerUrl}
-            onChange={(e) => handleChange('bannerUrl', e.target.value)}
-          />
+          <label style={labelStyle}>
+            <ImageIcon size={14} /> Event Banner Poster
+          </label>
+          <div className="banner-gallery-grid">
+            {STOCK_BANNERS.map(b => (
+              <div
+                key={b.id}
+                className={`banner-preset-thumb ${form.bannerUrl === b.url ? 'active' : ''}`}
+                onClick={() => handleChange('bannerUrl', b.url)}
+              >
+                <img
+                  src={b.url}
+                  alt={b.label}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: '#FFFFFF'
+                  }}
+                >
+                  {form.bannerUrl === b.url && (
+                    <Check size={14} color="var(--brand-primary)" style={{ marginRight: '4px' }} />
+                  )}
+                  {b.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '8px' }}>
+            <input
+              type="url"
+              className="input-field"
+              placeholder="Or paste custom image URL..."
+              value={form.bannerUrl}
+              onChange={(e) => handleChange('bannerUrl', e.target.value)}
+              style={{ fontSize: '0.85rem' }}
+            />
+          </div>
         </div>
 
-        {/* Start & End Time */}
+        {/* Schedule: Start & End */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div style={fieldStyle}>
-            <label style={labelStyle}><CalendarDays size={14} /> Start Date & Time *</label>
+            <label style={labelStyle}>
+              <CalendarDays size={14} /> Start Time *
+            </label>
             <input
-              className="input-field"
               type="datetime-local"
+              className="input-field"
               value={form.startTime}
               onChange={(e) => handleChange('startTime', e.target.value)}
               required
             />
           </div>
+
           <div style={fieldStyle}>
-            <label style={labelStyle}><CalendarDays size={14} /> End Date & Time *</label>
+            <label style={labelStyle}>
+              <CalendarDays size={14} /> End Time *
+            </label>
             <input
-              className="input-field"
               type="datetime-local"
+              className="input-field"
               value={form.endTime}
               onChange={(e) => handleChange('endTime', e.target.value)}
               required
@@ -194,29 +276,29 @@ export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null
           </div>
         </div>
 
-        {/* Location Type & Venue */}
-        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '16px' }}>
+        {/* Location Type & Venue/URL */}
+        <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '16px' }}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Location Type *</label>
+            <label style={labelStyle}>Format</label>
             <select
               className="input-field"
               value={form.locationType}
               onChange={(e) => handleChange('locationType', e.target.value)}
             >
-              <option value="VIRTUAL">Virtual</option>
+              <option value="VIRTUAL">Virtual (URL)</option>
               <option value="IN_PERSON">In-Person</option>
-              <option value="HYBRID">Hybrid</option>
             </select>
           </div>
+
           <div style={fieldStyle}>
             <label style={labelStyle}>
               {form.locationType === 'VIRTUAL' ? <Video size={14} /> : <MapPin size={14} />}
               {form.locationType === 'VIRTUAL' ? 'Meeting URL *' : 'Venue Address *'}
             </label>
             <input
-              className="input-field"
               type="text"
-              placeholder={form.locationType === 'VIRTUAL' ? 'https://meet.google.com/...' : '123 Conference Center, Mumbai'}
+              className="input-field"
+              placeholder={form.locationType === 'VIRTUAL' ? 'https://meet.google.com/xyz' : 'Auditorium Hall B, Tech Park'}
               value={form.venueOrUrl}
               onChange={(e) => handleChange('venueOrUrl', e.target.value)}
               required
@@ -224,41 +306,54 @@ export const EventFormModal = ({ isOpen, onClose, onSubmit, existingEvent = null
           </div>
         </div>
 
-        {/* Max Capacity */}
+        {/* Capacity */}
         <div style={fieldStyle}>
-          <label style={labelStyle}><Users size={14} /> Maximum Capacity *</label>
+          <label style={labelStyle}>
+            <Users size={14} /> Maximum Attendee Capacity *
+          </label>
           <input
-            className="input-field"
             type="number"
-            min={1}
-            max={100000}
+            min="1"
+            max="10000"
+            className="input-field"
             value={form.maxCapacity}
             onChange={(e) => handleChange('maxCapacity', e.target.value)}
             required
           />
         </div>
 
-        {/* Error */}
-        {error && (
-          <div style={{
-            padding: '12px 16px',
-            background: 'var(--status-danger-bg)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--status-danger)',
-            fontSize: '0.875rem'
-          }}>
-            {error}
-          </div>
-        )}
+        {/* Description & Agenda */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>
+            <AlignLeft size={14} /> Description & Agenda Details
+          </label>
+          <textarea
+            className="input-field"
+            rows="4"
+            placeholder="Share session agenda, speaker notes, and what attendees will learn..."
+            value={form.description}
+            onChange={(e) => handleChange('description', e.target.value)}
+            required
+            style={{ resize: 'vertical' }}
+          />
+        </div>
 
         {/* Submit Actions */}
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '8px' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : existingEvent ? 'Update Event' : 'Create Event'}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving Event...' : existingEvent ? 'Save Changes' : 'Publish Event'}
           </button>
         </div>
       </form>

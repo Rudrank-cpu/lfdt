@@ -1,29 +1,55 @@
 import React from 'react';
 
-export const StatusBadge = ({ status }) => {
-  if (!status) return null;
+export const StatusBadge = ({ status, isFillingFast = false, isHappeningToday = false }) => {
+  if (!status && !isFillingFast && !isHappeningToday) return null;
 
-  const normalized = status.toUpperCase();
+  if (isHappeningToday) {
+    return (
+      <span className="badge badge-brand badge-pulse" style={{ background: 'rgba(236, 72, 153, 0.18)', borderColor: 'rgba(236, 72, 153, 0.45)', color: '#F472B6' }}>
+        🔥 Happening Today
+      </span>
+    );
+  }
+
+  if (isFillingFast) {
+    return (
+      <span className="badge badge-warning badge-pulse">
+        ⚡ Seats Filling Fast
+      </span>
+    );
+  }
+
+  const normalized = (status || '').toUpperCase();
   let badgeClass = 'badge-brand';
   let label = status;
 
   switch (normalized) {
     case 'PUBLISHED':
+      badgeClass = 'badge-success';
+      label = 'Live Event';
+      break;
     case 'CONFIRMED':
     case 'ACTIVE':
       badgeClass = 'badge-success';
-      label = normalized === 'PUBLISHED' ? 'Live Event' : 'Confirmed RSVP';
+      label = 'Confirmed RSVP';
       break;
     case 'WAITLISTED':
-    case 'FILLING FAST':
       badgeClass = 'badge-warning';
-      label = normalized === 'WAITLISTED' ? 'Waitlist' : 'Filling Fast';
+      label = 'Waitlist';
+      break;
+    case 'FILLING FAST':
+    case 'SEATS FILLING FAST':
+      badgeClass = 'badge-warning badge-pulse';
+      label = 'Seats Filling Fast';
       break;
     case 'CANCELLED':
+      badgeClass = 'badge-danger';
+      label = 'Cancelled';
+      break;
     case 'FULL':
     case 'SOLD OUT':
       badgeClass = 'badge-danger';
-      label = normalized === 'CANCELLED' ? 'Cancelled' : 'Sold Out';
+      label = 'Sold Out';
       break;
     case 'DRAFT':
       badgeClass = 'badge-draft';
@@ -40,3 +66,4 @@ export const StatusBadge = ({ status }) => {
 
   return <span className={`badge ${badgeClass}`}>{label}</span>;
 };
+

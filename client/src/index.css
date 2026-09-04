@@ -310,3 +310,130 @@ button {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Animations & Badges */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.badge-pulse {
+  animation: pulseGlow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Agenda Timeline */
+.agenda-timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 24px;
+}
+
+.agenda-timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: rgba(99, 102, 241, 0.25);
+}
+
+.agenda-item {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.agenda-item::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  border: 3px solid var(--bg-canvas);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+/* Stock Banner Gallery */
+.banner-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.banner-preset-thumb {
+  height: 64px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-glass);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.banner-preset-thumb:hover {
+  border-color: var(--brand-primary);
+  transform: scale(1.02);
+}
+
+.banner-preset-thumb.active {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+}
+
+/* Media Print Rules */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  header, nav, button:not(.print-include) {
+    display: none !important;
+  }
+  .modal-overlay {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  .modal-content {
+    box-shadow: none !important;
+    border: 1px solid #CCCCCC !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Responsive Overrides */
+@media (max-width: 900px) {
+  .event-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .nav-desktop-links {
+    display: none !important;
+  }
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+}
+
